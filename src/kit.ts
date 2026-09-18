@@ -1,3 +1,5 @@
+import {themeControl} from './document.ts';
+import {themeScript} from './theme-script.ts';
 /**
  * The kit: templates resolved in override order (project file, then the
  * owning extension, then the kit), rendered into complete pages with the
@@ -35,6 +37,7 @@ export interface KitReport {
     assets: { name: string; bytes: number }[];
 }
 export interface PageOptions {
+    layout?: 'default' | 'compact' | 'application' | undefined;
     title: string;
     preferences?: LocalePreferences | undefined;
     context?: PresentationContext | undefined;
@@ -129,6 +132,7 @@ export function createKit(options: KitOptions): Kit {
         return template.render(view, context, resolve);
     };
     const wrap = (content: Markup, page: PageOptions): PageResult => {
+        if(page.layout&&!['default','compact','application'].includes(page.layout))throw new Error('Invalid page layout');
         const context = page.context ?? presentation.resolve(page.preferences);
         const token = nonce();
         const scriptAssets = (page.scripts ?? []).map(script => {
@@ -137,6 +141,7 @@ export function createKit(options: KitOptions): Kit {
             return `${assetsBase}/${asset.name}`;
         });
         const view: ViewModel = {
+            layout: page.layout ?? 'default', themeToggle: new Markup(themeControl(context)), themeBootstrap: new Markup(themeScript),
             lang: context.lang, dir: context.dir, title: page.title, siteName: theme.name ?? null, favicon: theme.favicon ?? context.favicon ?? null, logo: theme.logo ?? context.logo ?? null, backTo: theme.backTo ?? null,
             stylesheet, extraStylesheet: null, nonce: token, themeCss: new Markup((context.cssVariables ? `:root{${context.cssVariables}}` : '') + theme.css), content,
             nav: page.nav ? page.nav.map(item => ({ href: item.href, label: item.label, current: Boolean(item.current) })) : null,
@@ -154,7 +159,8 @@ export function createKit(options: KitOptions): Kit {
         presentation, theme, assetsBase, assets, names: Object.freeze([...compiled.keys()].sort()),
         info, template: resolve, render, wrap,
         page(name, view, page) {
-            const context = page.context ?? presentation.resolve(page.preferences);
+            if(page.layout&&!['default','compact','application'].includes(page.layout))throw new Error('Invalid page layout');
+        const context = page.context ?? presentation.resolve(page.preferences);
             return wrap(render(name, view, context), { ...page, context });
         },
         resolveContext: (preferences?: LocalePreferences) => presentation.resolve(preferences),
