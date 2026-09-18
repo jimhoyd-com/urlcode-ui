@@ -69,8 +69,9 @@ system preference and all native forms/navigation still work.
 
 Beside the primitives above, the package ships the kit the [UI kit spike](docs/SPIKE-UI.md)
 describes: a logic-free template language with enforced escaping, partials in
-shadcn/ui markup (`layout`, `nav`, `menu`, `card`, `form`, `field`, `button`,
-`alert`, `otp`, `table`, `tabs`, `empty`, `pagination`, `confirm`), a static
+shadcn/ui markup (`layout`, `layout-application`, `nav`, `menu`, `card`,
+`form`, `field`, `button`, `alert`, `otp`, `table`, `tabs`, `empty`,
+`pagination`, `confirm`), a static
 stylesheet on shadcn/ui variables with light and dark values, a theme block, and
 project overrides of copy, templates and CSS. The `ui` runtime extension owns the
 project's `extensions.ui` block and serves the kit's hashed assets; it lives in
@@ -106,6 +107,12 @@ Auth and admin do not yet take the kit; they render through the primitives
 above and a `presentation` (see [implementation status](IMPLEMENTATION-STATUS.md)).
 An extension that adopts the kit renders with `ui.kit.render(name, view, context)` and returns
 `ui.kit.page(name, view, { title, context })` or `ui.kit.wrap(markup, options)`.
+`options.layout: 'application'` renders the sidebar layout for console screens,
+`nav` items may carry an `icon`, and `scripts` takes kit script names beside
+the extension's own `{ src: '/account/static/passkeys.js', integrity? }`
+served under its mount; every script carries the page nonce. A host that
+builds its own `presentation` need not register `kitCatalogue`: the kit
+completes the `ui.*` copy itself, and the host's keys win.
 Override order is project file, then the extension's template, then the kit.
 `urlcode-ui eject layout --out ui/templates` copies a shipped template;
 `urlcode-ui doctor` lists overrides, templates behind their view model and

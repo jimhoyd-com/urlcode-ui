@@ -5,21 +5,31 @@
  */
 import type { ViewModel } from './template.ts';
 import { markup } from './escape.ts';
+import { icon } from './icons.ts';
 export interface ShippedTemplate { readonly source: string; readonly sample: ViewModel }
 export const kitTemplates: Readonly<Record<string, ShippedTemplate>> = Object.freeze({
     layout: {
-        source: `{{!-- viewModel: layout@1 --}}<!doctype html>
+        source: `{{!-- viewModel: layout@2 --}}<!doctype html>
 <html lang="{{lang}}" dir="{{dir}}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{title}}{{#if siteName}} · {{siteName}}{{/if}}</title>{{#if favicon}}<link rel="icon" href="{{href favicon}}">{{/if}}<link rel="stylesheet" href="{{href stylesheet}}">{{#if extraStylesheet}}<link rel="stylesheet" href="{{href extraStylesheet}}">{{/if}}<style nonce="{{nonce}}">{{themeCss}}</style></head>
 <body class="ui-body"><a class="ui-skip" href="#main">{{t "nav.skip"}}</a>
 <header class="ui-header"><div class="ui-container ui-header-row">{{#if backTo}}<a class="ui-brand" href="{{href backTo}}">{{#if logo}}<img class="ui-logo" src="{{href logo}}" alt="" width="32" height="32">{{/if}}<span>{{#if siteName}}{{siteName}}{{else}}{{t "ui.backTo"}}{{/if}}</span></a>{{else}}<span class="ui-brand">{{#if logo}}<img class="ui-logo" src="{{href logo}}" alt="" width="32" height="32">{{/if}}<span>{{siteName}}</span></span>{{/if}}{{#if nav}}{{> nav}}{{/if}}{{#if menu}}{{> menu}}{{/if}}</div></header>
 <main id="main" class="ui-container ui-main" tabindex="-1"><h1 class="ui-title">{{title}}</h1>{{#if flash}}{{> alert}}{{/if}}{{content}}</main>
 {{#if footer}}<footer class="ui-container ui-footer">{{footer}}</footer>{{/if}}
-{{#each scripts}}<script nonce="{{nonce}}" src="{{href this}}" defer></script>{{/each}}</body></html>`,
-        sample: { lang: 'en', dir: 'ltr', title: 'Sign in', siteName: 'Example', favicon: null, logo: null, backTo: '/', stylesheet: '/assets/ui/kit.css', extraStylesheet: null, nonce: 'sample', themeCss: '', nav: null, menu: null, flash: null, content: markup('<p>Content</p>'), footer: null, scripts: [] },
+{{#each scripts}}<script nonce="{{nonce}}" src="{{href src}}"{{#if integrity}} integrity="{{integrity}}"{{/if}} defer></script>{{/each}}</body></html>`,
+        sample: { lang: 'en', dir: 'ltr', title: 'Sign in', siteName: 'Example', favicon: null, logo: null, backTo: '/', stylesheet: '/assets/ui/kit.css', extraStylesheet: null, nonce: 'sample', themeCss: '', nav: null, menu: null, flash: null, content: markup('<p>Content</p>'), footer: null, scripts: [{ src: '/assets/ui/otp.js', integrity: null }] },
+    },
+    'layout-application': {
+        source: `{{!-- viewModel: layout-application@1 --}}<!doctype html>
+<html lang="{{lang}}" dir="{{dir}}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{title}}{{#if siteName}} · {{siteName}}{{/if}}</title>{{#if favicon}}<link rel="icon" href="{{href favicon}}">{{/if}}<link rel="stylesheet" href="{{href stylesheet}}">{{#if extraStylesheet}}<link rel="stylesheet" href="{{href extraStylesheet}}">{{/if}}<style nonce="{{nonce}}">{{themeCss}}</style></head>
+<body class="ui-body"><a class="ui-skip" href="#main">{{t "nav.skip"}}</a>
+<div class="ui-shell"><aside class="ui-sidebar">{{#if backTo}}<a class="ui-brand" href="{{href backTo}}">{{#if logo}}<img class="ui-logo" src="{{href logo}}" alt="" width="32" height="32">{{/if}}<span>{{#if siteName}}{{siteName}}{{else}}{{t "ui.backTo"}}{{/if}}</span></a>{{else}}<span class="ui-brand">{{#if logo}}<img class="ui-logo" src="{{href logo}}" alt="" width="32" height="32">{{/if}}<span>{{siteName}}</span></span>{{/if}}{{#if nav}}<nav class="ui-sidebar-nav" aria-label="Primary"><ul>{{#each nav}}<li><a href="{{href href}}"{{#if current}} aria-current="page"{{/if}}>{{#if icon}}{{icon}}{{/if}}<span>{{label}}</span></a></li>{{/each}}</ul></nav>{{/if}}{{#if menu}}<div class="ui-sidebar-footer">{{> menu}}</div>{{/if}}</aside>
+<main id="main" class="ui-content ui-main" tabindex="-1"><header class="ui-page-header"><h1 class="ui-title">{{title}}</h1></header>{{#if flash}}{{> alert}}{{/if}}{{content}}{{#if footer}}<footer class="ui-footer">{{footer}}</footer>{{/if}}</main></div>
+{{#each scripts}}<script nonce="{{nonce}}" src="{{href src}}"{{#if integrity}} integrity="{{integrity}}"{{/if}} defer></script>{{/each}}</body></html>`,
+        sample: { lang: 'en', dir: 'ltr', title: 'Overview', siteName: 'Example', favicon: null, logo: null, backTo: '/', stylesheet: '/assets/ui/kit.css', extraStylesheet: null, nonce: 'sample', themeCss: '', nav: [{ href: '/admin', label: 'Overview', current: true, icon: markup(icon('home')) }, { href: '/admin/users', label: 'Users', current: false, icon: markup(icon('users')) }], menu: { label: 'Ada', initial: 'A', items: [{ href: '/account', label: 'Account' }] }, flash: null, content: markup('<p>Content</p>'), footer: null, scripts: [] },
     },
     nav: {
-        source: `{{!-- viewModel: nav@1 --}}<nav class="ui-nav" aria-label="Primary"><ul>{{#each nav}}<li><a href="{{href href}}"{{#if current}} aria-current="page"{{/if}}>{{label}}</a></li>{{/each}}</ul></nav>`,
-        sample: { nav: [{ href: '/account', label: 'Overview', current: true }, { href: '/account/security', label: 'Security', current: false }] },
+        source: `{{!-- viewModel: nav@2 --}}<nav class="ui-nav" aria-label="Primary"><ul>{{#each nav}}<li><a href="{{href href}}"{{#if current}} aria-current="page"{{/if}}>{{#if icon}}{{icon}}{{/if}}{{label}}</a></li>{{/each}}</ul></nav>`,
+        sample: { nav: [{ href: '/account', label: 'Overview', current: true, icon: markup(icon('user')) }, { href: '/account/security', label: 'Security', current: false, icon: null }] },
     },
     menu: {
         source: `{{!-- viewModel: menu@1 --}}<details class="ui-menu"><summary aria-label="{{t "ui.menu"}}"><span class="ui-avatar" aria-hidden="true">{{menu.initial}}</span><span class="ui-menu-name">{{menu.label}}</span></summary><ul class="ui-menu-list">{{#each menu.items}}<li><a href="{{href href}}">{{label}}</a></li>{{/each}}</ul></details>`,

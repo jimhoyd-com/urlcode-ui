@@ -6,7 +6,7 @@ https://github.com/jimhoyd-com/urlcode/issues/58. Runtime contract: core
 PR #59 (`@jimhoyd/urlcode/extensions`).
 
 Implemented on top of the merged shared primitives (`createPresentation`, `renderDocument`, the components and `stylesheet`, which are unchanged): the template language with enforced escaping and bounded
-rendering; fourteen shipped partials in shadcn/ui markup with declared view
+rendering; fifteen shipped partials in shadcn/ui markup with declared view
 models and sample views; the stylesheet with shadcn/ui variables, light and
 dark, and two nonce-bound scripts; theme validation; presentation with
 registered extension catalogues, per-language project catalogues, locale
@@ -19,6 +19,14 @@ the Node-only `./host` entry with structural copies of the runtime contract so
 the package keeps no dependency; the CLI (`list`, `eject`, `preview`,
 `doctor`, `copy --missing`); the existing closure test extended to the new
 modules.
+
+Adoption follow-ups from auth (#11) and admin (#12): extension-owned scripts
+in `PageOptions.scripts` with the page nonce; `targets` typed as core's
+literal `TargetName` union; the kit catalogue completed by default in
+`createKit`; per-source catalogue bounds (1024 per source, 4096 in all) so
+auth's and admin's catalogues register together; the console layout classes
+in `kitCss`; the `application` layout with sidebar navigation and icons
+(`layout-application@1`, `nav@2`, `layout@2`).
 
 ## Remaining first-release acceptance
 
