@@ -91,6 +91,10 @@ test('kit compact pages share the nonce-bound accessible theme toggle and flag o
  const page=kit.wrap(markup('<form></form>'),{title:'Sign in',layout:'compact'});
  const html=decode(page.body);
  assert.match(html,/data-layout="compact"/);
+ assert.match(html,/<h1 class="ui-title">Sign in<\/h1>/);
+ const app=decode(kit.wrap(markup('<h1>Users</h1>'),{title:'Users',layout:'application'}).body);
+ assert.equal((app.match(/<h1[ >]/g)??[]).length,1);
+ assert.match(app,/<h1>Users<\/h1>/);
  assert.match(html,/class="ui-theme-toggle"/);
  assert.match(html,/aria-label="Switch to dark mode"/);
  assert.doesNotMatch(html,/<select/);

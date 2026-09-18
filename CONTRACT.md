@@ -76,7 +76,7 @@ as private copies:
 - `withDeadline(fn, ms, message)`: races `fn(signal)` against a timer, aborts the signal and rejects with `Error(message)` at the deadline, and always clears the timer. Web APIs only.
 
 The default kit layout is now `layout@2`: it accepts generic `layout`
-(default/compact/application), `themeToggle` and nonce-bound `themeBootstrap`
-markup. Existing project layout@1 overrides keep rendering and are reported as
+(default/compact/application), `showTitle`, `themeToggle` and nonce-bound `themeBootstrap`
+markup. Application shells supply their own page heading (`showTitle` is false); other layouts retain the generated heading. Existing project layout@1 overrides keep rendering and are reported as
 behind by doctor. Theme choice follows the system until the icon toggle is used,
 then remembers light/dark; no dropdown or visible appearance label is required.
