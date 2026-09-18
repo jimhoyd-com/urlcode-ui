@@ -141,7 +141,7 @@ export function createKit(options: KitOptions): Kit {
             return `${assetsBase}/${asset.name}`;
         });
         const view: ViewModel = {
-            layout: page.layout ?? 'default', themeToggle: new Markup(themeControl(context)), themeBootstrap: new Markup(themeScript),
+            layout: page.layout ?? 'default', showTitle: page.layout !== 'application', themeToggle: new Markup(themeControl(context)), themeBootstrap: new Markup(themeScript),
             lang: context.lang, dir: context.dir, title: page.title, siteName: theme.name ?? null, favicon: theme.favicon ?? context.favicon ?? null, logo: theme.logo ?? context.logo ?? null, backTo: theme.backTo ?? null,
             stylesheet, extraStylesheet: null, nonce: token, themeCss: new Markup((context.cssVariables ? `:root{${context.cssVariables}}` : '') + theme.css), content,
             nav: page.nav ? page.nav.map(item => ({ href: item.href, label: item.label, current: Boolean(item.current) })) : null,
