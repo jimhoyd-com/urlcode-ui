@@ -3,6 +3,8 @@
 Shared presentation for URLCode extensions (auth, admin) and for operator builds beside core. Apache-2.0, private/unpublished
 while integration is reviewed. No production dependencies or auth/runtime imports.
 
+[![Verify](https://github.com/jimhoyd-com/urlcode-ui/actions/workflows/verify.yml/badge.svg)](https://github.com/jimhoyd-com/urlcode-ui/actions/workflows/verify.yml)
+
 ```ts
 import {createPresentation,renderDocument,field,button} from '@jimhoyd/urlcode-ui';
 const presentation=createPresentation({
