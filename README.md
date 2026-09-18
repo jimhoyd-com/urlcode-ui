@@ -1,7 +1,8 @@
 # URLCode UI
 
-Shared presentation for URLCode core, auth and admin. Apache-2.0, private/unpublished
-while integration is reviewed. No production dependencies or auth/runtime imports.
+Shared presentation for URLCode core, auth and admin. Apache-2.0, published as
+[`@jimhoyd/urlcode-ui`](https://www.npmjs.com/package/@jimhoyd/urlcode-ui). No
+production dependencies or auth/runtime imports.
 
 ```ts
 import {createPresentation,renderDocument,field,button} from '@jimhoyd/urlcode-ui';
@@ -35,9 +36,23 @@ This requires no auth/admin import or extension registry. Rendering inside a tru
 operator extension is also possible; project code never gains host module loading.
 Core's redirect-only runtime does not acquire a mandatory private-package dependency.
 
-For local review, run `npm ci`, `npm run verify`, then `npm pack --ignore-scripts`.
-Install the resulting archive into a consumer before installing auth and admin.
-Do not publish a package as a workaround for local peer resolution.
+Install it from the registry, pinned to an exact version:
+
+```sh
+npm install @jimhoyd/urlcode-ui
+```
+
+To review a change before it is released, run `npm ci`, `npm run verify`, then
+`npm pack`, and install the resulting archive into a consumer. Note the order:
+`dist/` is generated, and `files` ships it, so packing without building first
+produces an archive whose every export resolves to a missing file. `npm run
+verify` builds before it tests, and one of those tests asserts the packed
+tarball actually contains what the exports map names.
+
+Releases are cut by pushing a `v*` tag whose version matches `package.json`.
+The workflow publishes through an npm trusted publisher using the job's OIDC
+identity, so no npm token exists in this repository's secrets, and provenance
+is generated from that same identity.
 
 ## Tailwind and shadcn styling
 
