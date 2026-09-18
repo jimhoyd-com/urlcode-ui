@@ -17,6 +17,8 @@ tagged `0.1.0-alpha.N` and may change without notice. See
 To build from source instead, run `npm ci`, `npm run verify`, then
 `npm pack --ignore-scripts`, and install the resulting archive into a consumer.
 
+[![Verify](https://github.com/jimhoyd-com/urlcode-ui/actions/workflows/verify.yml/badge.svg)](https://github.com/jimhoyd-com/urlcode-ui/actions/workflows/verify.yml)
+
 ```ts
 import {createPresentation,renderDocument,field,button} from '@jimhoyd/urlcode-ui';
 const presentation=createPresentation({
@@ -71,8 +73,8 @@ Auth and admin screens remain in their own packages.
 
 ## Appearance selection
 
-Pass `theme: { nonce }` to `renderDocument` to enable the localized System/Light/Dark
-selector. The host must allow that unpredictable per-response nonce in its CSP
+Pass `theme: { nonce }` to `renderDocument` to enable the localized icon-only light/dark
+toggle. The host must allow that unpredictable per-response nonce in its CSP
 `script-src`; never enable unsafe inline scripts. The static bootstrap runs before
 paint and saves only the appearance enum in local storage. Storage denial falls
 back gracefully. Without the option or with scripts disabled, CSS follows the
