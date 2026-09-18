@@ -159,8 +159,7 @@ export function createKit(options: KitOptions): Kit {
         presentation, theme, assetsBase, assets, names: Object.freeze([...compiled.keys()].sort()),
         info, template: resolve, render, wrap,
         page(name, view, page) {
-            if(page.layout&&!['default','compact','application'].includes(page.layout))throw new Error('Invalid page layout');
-        const context = page.context ?? presentation.resolve(page.preferences);
+            const context = page.context ?? presentation.resolve(page.preferences);
             return wrap(render(name, view, context), { ...page, context });
         },
         resolveContext: (preferences?: LocalePreferences) => presentation.resolve(preferences),
