@@ -24,7 +24,7 @@ The shadcn Button/Input/Card recipes are adapted to server HTML (see THIRD-PARTY
 Document layouts are generic default, compact and application variants. No claim
 of full WCAG 2.2 AA conformance follows from semantic markup tests.
 
-`renderDocument` optionally accepts `theme: { nonce }` for an appearance selector.
+`renderDocument` optionally accepts `theme: { nonce }` for an appearance toggle.
 The host owns the matching CSP nonce. Labels live in the generic `theme.*`
 catalogue; remembered appearance is origin-local and independent of identity.
 
@@ -68,12 +68,14 @@ beside it and without changing the exports above:
   defer>` with the page nonce, at most 8 scripts per page (`pageLimits`), the
   bounds `renderDocument` applies. The layout's `scripts` view entries are
   `{ src, integrity }` objects (`layout@2`).
-- `PageOptions.layout`: `default` (header navigation, `layout`) or
-  `application` (sidebar navigation, `layout-application@1`, the console
-  shell classes `ui-shell`, `ui-sidebar`, `ui-content`, `ui-page-header`).
-  `NavigationItem.icon` takes an `IconName`; the `nav` view entries carry the
-  rendered icon markup or `null` (`nav@2`). An ejected `layout@1` or `nav@1`
-  is reported behind by `doctor`; other ejected partials are unchanged.
+- `PageOptions.layout`: `default` (header navigation), `compact` (a small
+  centred card) or `application` (the header and the title are hidden and the
+  page supplies its console shell in the classes `ui-shell`, `ui-sidebar`,
+  `ui-content`, `ui-page-header`). All three render through `layout@2`, which
+  sets `data-layout` on `body` and carries the theme toggle. `NavigationItem.icon`
+  takes an `IconName`; the `nav` view entries carry the rendered icon markup or
+  `null` (`nav@2`). An ejected `layout@1` or `nav@1` is reported behind by
+  `doctor`; other ejected partials are unchanged.
 - `kitCss` carries the console layout classes the admin screens use
   (`ui-shell`, `ui-sidebar`, `ui-metrics`, `ui-definition-grid`, `ui-badge`,
   `ui-list`, `ui-toolbar`, `ui-section-heading`, `ui-danger-zone`,
@@ -89,6 +91,17 @@ beside it and without changing the exports above:
   The structural contract types `targets` and `ExtensionActivation.target` as
   the literal union core's `TargetName` declares (`'node' | 'vercel' | 'aws'
   | 'cloudflare'`), so `ui.registration` needs no cast in a host file.
+- `scaffold(request)`, exported from both entries for core's `urlcode init
+  --with ui`: the shared scaffold contract auth and admin implement (`name`,
+  `extensions`, `routes`, `hostImports`, `hostSetup`, `hostEntries`, `files`,
+  `readme`, `nextSteps`, `env`). It returns the `extensions.ui` block with a
+  starter theme, the `/assets/ui/*` mount, a host fragment creating
+  `createUiExtension` under its own `uiProjectSha256` identifier and the entry
+  `ui.registration`, and `ui/copy`, `ui/templates` and `ui/extra.css`
+  placeholders. It writes nothing and uses no Node imports, so the main entry
+  stays Node-free. The contract has no ordering field: core composes the host
+  in `--with` order, and `ui` should be named first so its entry is listed and
+  activated before the extensions that render through the kit.
 
 The main entry stays dependency-free and free of Node imports. The `./host`
 entry uses `node:fs` and `node:path` and mirrors the runtime's extension
@@ -109,3 +122,9 @@ as private copies:
 - `hiddenField(name, value)`: an escaped `<input type="hidden">`; the name follows the `field` grammar.
 - `postForm({action, csrf, fields, label, destructive?, icon?, className?})`: a `method="post"` form with the CSRF hidden field, trusted field markup and one submit `button`; `action` must pass `safeHref` unchanged, `destructive` adds `ui-button-destructive`.
 - `withDeadline(fn, ms, message)`: races `fn(signal)` against a timer, aborts the signal and rejects with `Error(message)` at the deadline, and always clears the timer. Web APIs only.
+
+The default kit layout is now `layout@2`: it accepts generic `layout`
+(default/compact/application), `showTitle`, `themeToggle` and nonce-bound `themeBootstrap`
+markup. Application shells supply their own page heading (`showTitle` is false); other layouts retain the generated heading. Existing project layout@1 overrides keep rendering and are reported as
+behind by doctor. Theme choice follows the system until the icon toggle is used,
+then remembers light/dark; no dropdown or visible appearance label is required.

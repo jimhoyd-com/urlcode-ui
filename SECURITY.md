@@ -22,7 +22,7 @@ Report sensitive vulnerabilities privately; never include credentials in issues.
 The optional appearance enhancement is a fixed package-owned inline script, bound
 to a host-generated CSP nonce. It reads/writes only `urlcode-ui.theme` with values
 `system`, `light`, `dark`; it never handles credentials, network calls or raw HTML.
-The host owns CSP and must not enable `unsafe-inline` for scripts. Its selector is
+The host owns CSP and must not enable `unsafe-inline` for scripts. Its toggle is
 hidden until enhancement is available; no-script pages retain system CSS themes.
 
 ## The kit and the host entry
@@ -47,3 +47,5 @@ Rendering is bounded.
 A project stylesheet can still restyle anything, including hiding a notice:
 styling is not a security control. The `ui` extension and the host file are
 trusted operator code; the runtime forces `no-store` on their responses.
+
+This repository follows the [core URLCode security policy](https://github.com/jimhoyd-com/urlcode/blob/main/SECURITY.md) for reporting and support baseline.

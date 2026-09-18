@@ -62,7 +62,7 @@ test('activation refuses a wrong mount count, and the configuration schema rejec
     const wide = createUiExtension({ projectSha256: sha, projectRoot: root, sources: [big('auth', 470), big('admin', 44)] });
     await wide.registration.activate({}, activation(['/assets/ui']));
     assert.ok(Object.hasOwn(wide.kit.presentation.english, 'admin.k43') && Object.hasOwn(wide.kit.presentation.english, 'ui.backTo'));
-    assert.match(new TextDecoder().decode(wide.kit.wrap(new Markup(''), { title: 'x', layout: 'application', nav: [{ href: '/admin', label: 'Overview', icon: 'home' }] }).body), /ui-sidebar-nav.*Overview/);
+    assert.match(new TextDecoder().decode(wide.kit.wrap(new Markup(''), { title: 'x', layout: 'application', nav: [{ href: '/admin', label: 'Overview', icon: 'home' }] }).body), /data-layout="application"[\s\S]*<svg class="ui-icon"[\s\S]*Overview/);
     assert.equal(uiConfigSchema.additionalProperties, false);
     assert.ok('theme' in uiConfigSchema.properties && 'languages' in uiConfigSchema.properties);
 });

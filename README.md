@@ -17,6 +17,8 @@ tagged `0.1.0-alpha.N` and may change without notice. See
 To build from source instead, run `npm ci`, `npm run verify`, then
 `npm pack --ignore-scripts`, and install the resulting archive into a consumer.
 
+[![Verify](https://github.com/jimhoyd-com/urlcode-ui/actions/workflows/verify.yml/badge.svg)](https://github.com/jimhoyd-com/urlcode-ui/actions/workflows/verify.yml)
+
 ```ts
 import {createPresentation,renderDocument,field,button} from '@jimhoyd/urlcode-ui';
 const presentation=createPresentation({
@@ -71,8 +73,8 @@ Auth and admin screens remain in their own packages.
 
 ## Appearance selection
 
-Pass `theme: { nonce }` to `renderDocument` to enable the localized System/Light/Dark
-selector. The host must allow that unpredictable per-response nonce in its CSP
+Pass `theme: { nonce }` to `renderDocument` to enable the localized icon-only light/dark
+toggle. The host must allow that unpredictable per-response nonce in its CSP
 `script-src`; never enable unsafe inline scripts. The static bootstrap runs before
 paint and saves only the appearance enum in local storage. Storage denial falls
 back gracefully. Without the option or with scripts disabled, CSS follows the
@@ -82,9 +84,8 @@ system preference and all native forms/navigation still work.
 
 Beside the primitives above, the package ships the kit the [UI kit spike](docs/SPIKE-UI.md)
 describes: a logic-free template language with enforced escaping, partials in
-shadcn/ui markup (`layout`, `layout-application`, `nav`, `menu`, `card`,
-`form`, `field`, `button`, `alert`, `otp`, `table`, `tabs`, `empty`,
-`pagination`, `confirm`), a static
+shadcn/ui markup (`layout`, `nav`, `menu`, `card`, `form`, `field`, `button`,
+`alert`, `otp`, `table`, `tabs`, `empty`, `pagination`, `confirm`), a static
 stylesheet on shadcn/ui variables with light and dark values, a theme block, and
 project overrides of copy, templates and CSS. The `ui` runtime extension owns the
 project's `extensions.ui` block and serves the kit's hashed assets; it lives in
@@ -116,11 +117,20 @@ export default { extensions: [ui.registration, authExtension({ /* service, csrfK
 ```
 
 Declare `ui` first; `ui.kit` is available once the runtime has activated it.
+`urlcode init <directory> --with ui,auth,admin` composes all of this: core
+resolves the package's `scaffold` export, which returns the `extensions.ui`
+block with a starter theme named after the directory, the `/assets/ui/*` mount,
+the host fragment above with `projectRoot` resolved from the host file's own
+location, `ui/copy/`, `ui/templates/` and `ui/extra.css` placeholders beside
+the host, a README section and the `doctor` and `eject` next steps. Core lists
+the host entries in `--with` order and the contract carries no ordering field,
+so name `ui` first. `scaffold` writes nothing.
 Auth and admin do not yet take the kit; they render through the primitives
 above and a `presentation` (see [implementation status](IMPLEMENTATION-STATUS.md)).
 An extension that adopts the kit renders with `ui.kit.render(name, view, context)` and returns
 `ui.kit.page(name, view, { title, context })` or `ui.kit.wrap(markup, options)`.
-`options.layout: 'application'` renders the sidebar layout for console screens,
+`options.layout: 'application'` hides the header and title so console screens
+supply their own shell (`ui-shell`, `ui-sidebar`, `ui-content`),
 `nav` items may carry an `icon`, and `scripts` takes kit script names beside
 the extension's own `{ src: '/account/static/passkeys.js', integrity? }`
 served under its mount; every script carries the page nonce. A host that

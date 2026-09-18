@@ -1,3 +1,5 @@
+import {themeControl} from './document.ts';
+import {themeScript} from './theme-script.ts';
 /**
  * The kit: templates resolved in override order (project file, then the
  * owning extension, then the kit), rendered into complete pages with the
@@ -46,7 +48,7 @@ export interface KitReport {
  */
 export interface ExtensionScript { src: string; integrity?: string | undefined }
 export interface NavigationItem { href: string; label: string; current?: boolean | undefined; icon?: IconName | undefined }
-export type PageLayout = 'default' | 'application';
+export type PageLayout = 'default' | 'compact' | 'application';
 export interface PageOptions {
     title: string;
     preferences?: LocalePreferences | undefined;
@@ -55,7 +57,7 @@ export interface PageOptions {
     headers?: [string, string][] | undefined;
     /** Kit scripts by name ('otp', 'confirm') and extension-owned scripts by path; at most `pageLimits.scripts` in all. */
     scripts?: readonly (string | ExtensionScript)[] | undefined;
-    /** `default` is the header layout; `application` puts the navigation in a sidebar (`layout-application`). */
+    /** `default` keeps the header; `compact` centres a small card; `application` hides the header and title so the page supplies its console shell (`ui-shell`, `ui-sidebar`, `ui-content`). All render through `layout`. */
     layout?: PageLayout | undefined;
     nav?: NavigationItem[] | undefined;
     menu?: { label: string; initial?: string; items: { href: string; label: string }[] } | undefined;
@@ -86,7 +88,7 @@ export interface Kit {
 export const pageLimits = Object.freeze({ scripts: 8, scriptSource: 2048, navigation: 100 });
 const encoder = new TextEncoder();
 const kindLabel: Record<string, string> = { error: 'ui.alert.error', warning: 'ui.alert.warning', success: 'ui.alert.success', info: 'ui.alert.info' };
-const layouts: Record<PageLayout, string> = { default: 'layout', application: 'layout-application' };
+const pageLayouts: readonly PageLayout[] = ['default', 'compact', 'application'];
 const kitKeys = Object.keys(kitCatalogue);
 function nonce(): string {
     const bytes = new Uint8Array(18);
@@ -191,7 +193,7 @@ export function createKit(options: KitOptions): Kit {
         const context = withKitCopy(page.context ?? presentation.resolve(page.preferences));
         const token = nonce();
         const layout = page.layout ?? 'default';
-        if (!Object.hasOwn(layouts, layout)) throw new Error('Invalid page layout');
+        if (!pageLayouts.includes(layout)) throw new Error('Invalid page layout');
         const scripts = page.scripts ?? [];
         if (!Array.isArray(scripts) || scripts.length > pageLimits.scripts) throw new Error('Page scripts exceed limit');
         const scriptAssets = scripts.map(script => {
@@ -206,6 +208,7 @@ export function createKit(options: KitOptions): Kit {
         const nav = page.nav ?? null;
         if (nav && (!Array.isArray(nav) || nav.length > pageLimits.navigation)) throw new Error('Too many navigation items');
         const view: ViewModel = {
+            layout, showTitle: layout !== 'application', themeToggle: new Markup(themeControl(context)), themeBootstrap: new Markup(themeScript),
             lang: context.lang, dir: context.dir, title: page.title, siteName: theme.name ?? null, favicon: theme.favicon ?? context.favicon ?? null, logo: theme.logo ?? context.logo ?? null, backTo: theme.backTo ?? null,
             stylesheet, extraStylesheet: null, nonce: token, themeCss: new Markup((context.cssVariables ? `:root{${context.cssVariables}}` : '') + theme.css), content,
             nav: nav ? nav.map(item => ({ href: item.href, label: item.label, current: Boolean(item.current), icon: item.icon ? new Markup(icon(item.icon)) : null })) : null,
@@ -213,7 +216,7 @@ export function createKit(options: KitOptions): Kit {
             flash: page.flash ? { kind: page.flash.kind, kindLabel: context.text(kindLabel[page.flash.kind] ?? 'ui.alert.info'), live: page.flash.kind === 'error', title: page.flash.title ?? null, message: page.flash.message } : null,
             footer: page.footer ?? null, scripts: scriptAssets,
         };
-        const html = render(layouts[layout], view, context).html;
+        const html = render('layout', view, context).html;
         const scriptSources = [`'nonce-${token}'`, ...(page.csp?.script ?? [])].join(' ');
         const csp = [`default-src 'none'`, `style-src 'self' 'nonce-${token}'`, `img-src 'self'`, `font-src 'self'`, `form-action 'self'`, `base-uri 'none'`, `frame-ancestors 'none'`, `script-src ${scriptSources}`, ...(page.csp?.connect?.length ? [`connect-src 'self' ${page.csp.connect.join(' ')}`] : []), ...(page.csp?.frame?.length ? [`frame-src ${page.csp.frame.join(' ')}`] : [])].join('; ');
         const headers: [string, string][] = [['content-type', 'text/html; charset=utf-8'], ['cache-control', 'no-store'], ['content-security-policy', csp], ['referrer-policy', 'strict-origin'], ['x-content-type-options', 'nosniff'], ['content-language', context.lang], ['vary', 'Accept-Language, Cookie'], ...(page.headers ?? [])];
