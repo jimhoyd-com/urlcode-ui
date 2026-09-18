@@ -24,7 +24,7 @@ The shadcn Button/Input/Card recipes are adapted to server HTML (see THIRD-PARTY
 Document layouts are generic default, compact and application variants. No claim
 of full WCAG 2.2 AA conformance follows from semantic markup tests.
 
-`renderDocument` optionally accepts `theme: { nonce }` for an appearance selector.
+`renderDocument` optionally accepts `theme: { nonce }` for an appearance toggle.
 The host owns the matching CSP nonce. Labels live in the generic `theme.*`
 catalogue; remembered appearance is origin-local and independent of identity.
 
@@ -49,10 +49,59 @@ beside it and without changing the exports above:
   overrides, templates behind their view model and translation coverage.
 - `PresentationContext.has`, `formatDate`, `formatNumber` and
   `Presentation.english`, `defaultLocale`, `coverage`: additive.
+- Catalogue bounds (`catalogueLimits`): an effective catalogue (the merged
+  English defaults, or one language) holds at most 4096 keys and 512 KiB of
+  message text; `mergeCatalogues` bounds each source at 1024 keys and at most
+  16 sources, so the kit's, auth's and admin's English catalogues register
+  side by side as `sources`. Every key and message stays bounded on its own.
+- The kit catalogue is part of the kit: `createKit` completes a presentation
+  that lacks `ui.*` keys from `kitCatalogue`, for `resolveContext`, `render`,
+  `page` and a `context` the host resolved itself; a host key of the same name
+  wins. `createUiExtension` registers `kitCatalogue` beside `sources`. A host
+  no longer has to register `kitCatalogue` to hand both `presentation` and
+  `ui` to an extension; `mergeCatalogues([kitCatalogue, ...])` stays valid.
+- `PageOptions.scripts` takes kit script names (`otp`, `confirm`) and
+  extension-owned scripts `{ src, integrity? }`: `src` is a same-site path the
+  extension serves under its own mount (absolute, no scheme or host, unchanged
+  by `safeHref`, at most 2048 characters), `integrity` an optional
+  `sha256|sha384|sha512-` value. They render as `<script nonce src [integrity]
+  defer>` with the page nonce, at most 8 scripts per page (`pageLimits`), the
+  bounds `renderDocument` applies. The layout's `scripts` view entries are
+  `{ src, integrity }` objects (`layout@2`).
+- `PageOptions.layout`: `default` (header navigation), `compact` (a small
+  centred card) or `application` (the header and the title are hidden and the
+  page supplies its console shell in the classes `ui-shell`, `ui-sidebar`,
+  `ui-content`, `ui-page-header`). All three render through `layout@2`, which
+  sets `data-layout` on `body` and carries the theme toggle. `NavigationItem.icon`
+  takes an `IconName`; the `nav` view entries carry the rendered icon markup or
+  `null` (`nav@2`). An ejected `layout@1` or `nav@1` is reported behind by
+  `doctor`; other ejected partials are unchanged.
+- `kitCss` carries the console layout classes the admin screens use
+  (`ui-shell`, `ui-sidebar`, `ui-metrics`, `ui-definition-grid`, `ui-badge`,
+  `ui-list`, `ui-toolbar`, `ui-section-heading`, `ui-danger-zone`,
+  `ui-form-grid`, `ui-actions`, `ui-activity`, `ui-chart`, `ui-filter`,
+  `ui-icon`) on the shadcn/ui variables plus `--sidebar`,
+  `--sidebar-foreground` and `--chart-1..3`, light and dark, and stays under
+  `kitCssLimit` (64 KiB).
 - The `./host` entry (Node only): `createUiExtension`, the `ui` runtime
   extension owning `extensions.ui`, reading bounded project copy, template and
-  stylesheet files, and serving the kit assets at its mount; `loadProjectUi`;
+  stylesheet files, and serving the kit assets under `<mount>/static/`, declared
+  as `immutableAssets` so the runtime caches them publicly; `loadProjectUi`;
   and the `urlcode-ui` CLI (`list`, `eject`, `preview`, `doctor`, `copy`).
+  The structural contract types `targets` and `ExtensionActivation.target` as
+  the literal union core's `TargetName` declares (`'node' | 'vercel' | 'aws'
+  | 'cloudflare'`), so `ui.registration` needs no cast in a host file.
+- `scaffold(request)`, exported from both entries for core's `urlcode init
+  --with ui`: the shared scaffold contract auth and admin implement (`name`,
+  `extensions`, `routes`, `hostImports`, `hostSetup`, `hostEntries`, `files`,
+  `readme`, `nextSteps`, `env`). It returns the `extensions.ui` block with a
+  starter theme, the `/assets/ui/*` mount, a host fragment creating
+  `createUiExtension` under its own `uiProjectSha256` identifier and the entry
+  `ui.registration`, and `ui/copy`, `ui/templates` and `ui/extra.css`
+  placeholders. It writes nothing and uses no Node imports, so the main entry
+  stays Node-free. The contract has no ordering field: core composes the host
+  in `--with` order, and `ui` should be named first so its entry is listed and
+  activated before the extensions that render through the kit.
 
 The main entry stays dependency-free and free of Node imports. The `./host`
 entry uses `node:fs` and `node:path` and mirrors the runtime's extension
@@ -66,3 +115,16 @@ follows from the structural tests.
 allowlist. It accepts no markup, URL or styling input. Keep visible labels; icons
 are hidden from assistive technology and cannot receive focus. `button` accepts
 an optional third icon argument, and navigation items accept `icon`.
+
+Version 1 also adds the form and deadline helpers auth and admin used to keep
+as private copies:
+
+- `hiddenField(name, value)`: an escaped `<input type="hidden">`; the name follows the `field` grammar.
+- `postForm({action, csrf, fields, label, destructive?, icon?, className?})`: a `method="post"` form with the CSRF hidden field, trusted field markup and one submit `button`; `action` must pass `safeHref` unchanged, `destructive` adds `ui-button-destructive`.
+- `withDeadline(fn, ms, message)`: races `fn(signal)` against a timer, aborts the signal and rejects with `Error(message)` at the deadline, and always clears the timer. Web APIs only.
+
+The default kit layout is now `layout@2`: it accepts generic `layout`
+(default/compact/application), `showTitle`, `themeToggle` and nonce-bound `themeBootstrap`
+markup. Application shells supply their own page heading (`showTitle` is false); other layouts retain the generated heading. Existing project layout@1 overrides keep rendering and are reported as
+behind by doctor. Theme choice follows the system until the icon toggle is used,
+then remembers light/dark; no dropdown or visible appearance label is required.

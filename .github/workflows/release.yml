@@ -10,10 +10,11 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
-      contents: write     # create the GitHub release
-      id-token: write     # the npm trusted-publishing exchange
+      contents: write        # create the GitHub release
+      id-token: write        # Sigstore provenance, and the npm trusted-publishing exchange
+      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -25,47 +26,70 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin main
           git merge-base --is-ancestor "${{ github.sha }}" origin/main
-      - name: Require the tag to agree with package.json
+      - name: Record the tagged version and require it to match package.json
         id: version
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME#v}"
           [[ "$tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
           declared=$(node -p 'require("./package.json").version')
-          [ "$tag" = "$declared" ] || { echo "tag $tag disagrees with package.json $declared" >&2; exit 1; }
+          if [[ "$tag" != "$declared" ]]; then
+            echo "tag $GITHUB_REF_NAME names version $tag but package.json declares $declared" >&2
+            exit 1
+          fi
+          [[ "$(node -p 'require("./package.json").private === true')" == false ]]
           echo "value=$tag" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
         with:
-          node-version: '24'
-      - run: npm ci --ignore-scripts
-      # verify builds dist/ before it tests, and one of those tests asserts the
-      # packed tarball actually contains what the exports map resolves to. A
-      # published version can never be replaced, so an empty package has to fail
-      # here rather than on the registry.
-      - run: npm run verify
+          node-version: '22'
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Verify
+        run: npm run verify
+      # The package has no runtime dependencies, so this is trivially green; it
+      # stays so that adding one later cannot ship an advisory unnoticed.
+      - name: Audit runtime dependencies
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            npm audit --omit=dev --audit-level=high && break || { [ "$attempt" = 3 ] && exit 1; sleep $((attempt * 5)); }
+          done
+      - name: Pack the candidate
+        run: npm pack --ignore-scripts --pack-destination candidate
+      - name: Sign provenance for the package
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: candidate/*
+      # Before the GitHub release: this step depends on a credential and is the
+      # one that fails. Creating the release first leaves a published release
+      # pointing at a package that does not exist, recoverable only by deleting
+      # the release and the tag and tagging again.
       - name: Publish to npm via trusted publishing
+        if: vars.PUBLISH_NPM == 'true'
         env:
           VERSION: ${{ steps.version.outputs.value }}
         run: |
           set -euo pipefail
-          # No npm token exists, here or in the repository's secrets. This step
-          # authenticates by exchanging the job's OIDC identity, which the
+          # No npm token exists, here or in the repository's secrets. The step
+          # authenticates by exchanging this job's OIDC identity, which the
           # trusted publisher registered on npmjs.org has to match: this
           # repository, and this workflow file by name.
           #
           # Nothing below may put a bearer token in npm's config. npm prefers a
-          # token over the exchange, so a leftover one turns a correctly
-          # configured publisher into an unexplained 404.
+          # token over the OIDC exchange, so a leftover one turns a correctly
+          # configured publisher into an unexplained 404 rather than an error
+          # that says what is wrong.
           name=$(node -p 'require("./package.json").name')
-          # A published version can never be replaced, so a re-run skips one
-          # already on the registry instead of failing the rest of the release.
+          # A published version can never be replaced, so a re-run skips one that
+          # is already on the registry instead of failing the rest of the release.
           if npm view "$name@$VERSION" version >/dev/null 2>&1; then
             echo "$name@$VERSION was already published; skipped" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          # Trusted publishing needs npm 11.5.1+ on Node 22.14+. An older npm
-          # does not attempt the exchange at all and publishes anonymously,
-          # failing as a 404 that looks like a misconfigured publisher.
+          # Trusted publishing needs npm 11.5.1+ on Node 22.14+. An older npm does
+          # not attempt the exchange at all and publishes anonymously, which fails
+          # as a 404 that looks like a misconfigured publisher. Check the runner
+          # first so the release names the real cause.
           node -e '
             // A prerelease ("11.5.1-rc.0") is older than its own release, and a
             // non-numeric part must not read as 0 and silently pass the floor.
@@ -88,18 +112,33 @@ jobs:
             check("npm", process.argv[1], "11.5.1");
             check("Node", process.argv[2], "22.14.0");
           ' "$(npm --version)" "$(node --version)"
+          # The ./ is load-bearing: npm reads "candidate/x-1.2.3.tgz" as the
+          # GitHub shorthand owner/repo and tries to clone it over SSH. Only a
+          # path starting with ./ ../ / or ~/ is parsed as a local tarball.
+          #
           # --provenance is deliberately absent: on this path npm generates and
-          # signs provenance from the same identity it authenticated with.
-          # --ignore-scripts is absent too, because dist/ is already built above.
-          npm publish --access public
+          # signs provenance itself, from the same OIDC identity it authenticated
+          # with, so the flag is redundant rather than load-bearing.
+          npm publish --access public --ignore-scripts "./candidate/$(node -p 'require("./package.json").name.replace("@","").replace("/","-")')-$VERSION.tgz"
       - name: Publish the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.value }}
         run: |
           set -euo pipefail
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            echo "release $GITHUB_REF_NAME already exists" >> "$GITHUB_STEP_SUMMARY"
+          tarball=$(node -p 'require("./package.json").name.replace("@","").replace("/","-")')-$VERSION.tgz
+          notes="Signed release package for $GITHUB_SHA.
+
+          Verify before installing:
+          \`gh attestation verify $tarball --repo $GITHUB_REPOSITORY\`"
+          # npm pack is byte-reproducible at a commit, so the asset a re-run
+          # rebuilds cannot contradict what an earlier attempt already published.
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" candidate/* --repo "$GITHUB_REPOSITORY" --clobber
           else
-            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" \
-              --notes "Published @jimhoyd/urlcode-ui $GITHUB_REF_NAME from $GITHUB_SHA with npm provenance."
+            gh release create "$GITHUB_REF_NAME" candidate/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "URLCode UI $VERSION" \
+              --prerelease="$([[ "$VERSION" == *-* ]] && echo true || echo false)" \
+              --notes "$notes"
           fi

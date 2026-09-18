@@ -1,6 +1,8 @@
 # UI kit implementation status
 
-Source plan: the [UI kit spike](https://github.com/jimhoyd-com/urlcode/blob/main/docs/SPIKE-UI.md)
+Status: `0.1.0-alpha.1`, published to npm as an alpha. The source is complete; the private integration review with core, auth and admin is pending, and the items below remain.
+
+Source plan: the [UI kit spike](docs/SPIKE-UI.md)
 and section 12 of the auth spike. Cross-repository acceptance:
 https://github.com/jimhoyd-com/urlcode/issues/58. Runtime contract: core
 PR #59 (`@jimhoyd/urlcode/extensions`).
@@ -20,21 +22,33 @@ the package keeps no dependency; the CLI (`list`, `eject`, `preview`,
 `doctor`, `copy --missing`); the existing closure test extended to the new
 modules.
 
+Adoption follow-ups from auth (#11) and admin (#12): extension-owned scripts
+in `PageOptions.scripts` with the page nonce; `targets` typed as core's
+literal `TargetName` union; the kit catalogue completed by default in
+`createKit`; per-source catalogue bounds (1024 per source, 4096 in all) so
+auth's and admin's catalogues register together; the console layout classes
+in `kitCss`; navigation icons (`nav@2`) and the `compact` and `application`
+layouts rendered through `layout@2`.
+
 ## Remaining first-release acceptance
 
 - Adopt the kit in `urlcode-auth` and `urlcode-admin`: register their
   catalogues and templates, render through `kit.page`, and retire
   `renderDocument`-based shells where the kit fits. `renderDocument` and
   the components stay for callers that do not use the kit.
-- The runtime forces `no-store` on extension responses, so the kit's hashed
-  assets are not cached. An immutable exception for hashed assets is a
-  runtime change request.
+- Done: the `ui` registration declares `immutableAssets: { prefix: '/static' }`
+  (core PR #93), so the runtime serves the kit's hashed assets under
+  `<mount>/static/` with `public, max-age=31536000, immutable`; the handler
+  emits one strong ETag and never sets cookies or `Vary`.
 - Accessibility: the automated checks cover structure (labels, landmarks,
   roles, skip link). Keyboard, screen-reader and contrast verification and
   a WCAG 2.2 AA assessment remain manual.
 - Translations: the mechanism is complete; no non-English catalogue ships.
-- Tailwind: the stylesheet is hand-written against shadcn/ui tokens rather
-  than compiled from Tailwind at publish time. A project running its own
-  Tailwind build can replace it. Compiling the kit stylesheet from Tailwind
-  is a later change that does not affect the template or theme contract.
+- Tailwind: the `stylesheet` export is compiled from Tailwind at build time
+  (`npm run styles`) and embedded by `renderDocument`. The kit's `kitCss`
+  (served through `kitAssets` and the `ui` extension) is hand-written against
+  shadcn/ui tokens rather than compiled. A project can append to or replace
+  `kitCss` through `extensions.ui.stylesheet`. Compiling the kit stylesheet
+  from Tailwind is a later change that does not affect the template or theme
+  contract.
 - `create-urlcode-extension` and the `--from` fork scaffold are not built.
